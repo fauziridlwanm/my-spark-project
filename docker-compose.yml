@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    ports:
+      - "9870:9870"  
+    environment:
+      - CLUSTER_NAME=test
+      
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+      - ./data:/data
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    depends_on:
+      - namenode
+
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+      - ./data:/data
+
+  jupyterlab:
+    build: ./jupyter  
+    container_name: jupyterlab
+    ports:
+      - "8888:8888"  
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./data:/data
+    environment:
+      - SPARK_OPTS=--packages com.microsoft.azure:synapseml_2.12:0.9.4 --repositories https://mmlspark.azureedge.net/maven
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+    depends_on:
+      - namenode
+      - datanode
+
+  downloader:  
+    image: alpine:latest
+    volumes:
+      - ./data:/data
+    command: >
+      sh -c "
+        apk add --no-cache wget &&
+        wget -O /data/trip.parquet https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet &&
+        wget -O /data/zone.csv https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
+      "
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:
