@@ -22,24 +22,15 @@ else
 fi
 
 echo ""
-echo "--- Uploading datasets to HDFS (/datasets) if not already present... ---"
-docker-compose exec namenode bash -lc '
-  hdfs dfs -mkdir -p /datasets
+echo "--- Uploading datasets to HDFS (root /) if not already present... ---"
 
-  if hdfs dfs -test -e /trip.parquet; then
-    echo "HDFS: trip.parquet already exists."
-  else
-    hdfs dfs -put /data/trip.parquet /trip.parquet
-    echo "HDFS: uploaded /trip.parquet"
-  fi
+docker-compose exec namenode hdfs dfs -test -e /trip.parquet \
+  && echo "HDFS: /trip.parquet already exists — skipping put." \
+  || docker-compose exec namenode hdfs dfs -put /data/trip.parquet /trip.parquet
 
-  if hdfs dfs -test -e /zone.csv; then
-    echo "HDFS: /zone.csv already exists"
-  else
-    hdfs dfs -put /data/zone.csv /zone.csv
-    echo "HDFS: uploaded /zone.csv"
-  fi
-'
+docker-compose exec namenode hdfs dfs -test -e /zone.csv \
+  && echo "HDFS: /zone.csv already exists — skipping put." \
+  || docker-compose exec namenode hdfs dfs -put /data/zone.csv /zone.csv
 
 echo ""
 echo "--- Final container status: ---"
